@@ -1,22 +1,16 @@
 # Scaling Global Retail Analytics with Microsoft Fabric
-## Overview
-Binaryville is a multinational retailer operating in 27 countries with over 11,000 stores and a rapidly growing e-commerce presence. The organization generates billions of transactional records annually but faces major challenges in consolidating, processing, and analyzing data across regions.
 
-This project demonstrates how a Microsoft Fabric Lakehouse architecture was designed to:
-- Consolidate multi-source global retail data
-- Process 10B+ transactions annually
-- Enable real-time enterprise analytics
-- Reduce processing time from 72 hours to under 6 hours
-- Support scalable growth and acquisitions
+<img width="1536" height="1024" alt="Medallion Architecture Diagram" src="https://github.com/user-attachments/assets/11f6e032-1e31-4005-ae7b-393f754bcee5" />
+
+## Overview
+This repository demonstrates an enterprise-scale data platform built for Binaryville, a multinational retailer operating in 27 countries with over 11,000 stores and a strong e-commerce presence.
+
+The solution implements a Medallion Architecture (Bronze, Silver, Gold) in Microsoft Fabric, with Azure Data Lake Storage (ADLS) serving as the centralized ingestion layer. It processes billions of records across customer, product, and transaction data to enable real-time enterprise analytics.
+
 
 ## Business Problem
 
-Binaryville struggled with:
-- Fragmented data across 27 countries
-- Inconsistent schemas and formats
-- Poor historical data quality
-- Long processing cycles (72 hours)
-- Inability to support real-time decision-making
+Binaryville struggled with fragmented data spread across 27 countries, resulting in inconsistent schemas and varying data formats across regions. Historical records, particularly from legacy systems and recent acquisitions, suffered from poor data quality. These challenges led to prolonged processing cycles of up to 72 hours and limited the organization’s ability to generate timely, reliable insights. As a result, the business was unable to effectively support real-time, company-wide decision-making.
 
 ## Data Sources 
 | Source              | Format  | Volume       | Update Frequency |
@@ -25,59 +19,44 @@ Binaryville struggled with:
 | Product Catalog     | JSON    | 1M SKUs      | Daily            |
 | Transaction History | Parquet | 10B annually | Near real-time   |
 
+These sources originate from CRM, Inventory Management, POS, and e-commerce systems across 27 countries.
+
 ## Architecture Overview
-The solution follows a Medallion (Bronze, Silver, Gold) Lakehouse Architecture implemented in Microsoft Fabric.
+The solution is built on a scalable Lakehouse architecture using Microsoft Fabric, designed to consolidate and transform massive volumes of global retail data into trusted, analytics-ready assets. It follows a structured data flow:
+
+Customer / Product / Orders Data → ADLS → Fabric Data Pipeline → Bronze → Silver → Gold → Power BI
+
+At a high level, the architecture separates data ingestion, storage, transformation, and consumption into clearly defined layers to ensure scalability, maintainability, and performance.
+
+The process begins with raw data ingestion from multiple enterprise systems across 27 countries. Customer data (CSV), product data (JSON), and transactional order data (Parquet) are first landed in Azure Data Lake Storage (ADLS), which acts as the centralized and scalable storage foundation. ADLS enables cost-efficient storage of billions of records, supports multiple file formats, and retains five years of historical data for analytical and compliance purposes.
+
+From ADLS, Microsoft Fabric Data Pipelines orchestrate automated and incremental data movement into the Fabric Lakehouse. This orchestration layer ensures reliable scheduling, monitoring, error handling, and schema drift management. It enables both historical backfill processing and daily incremental loads without disrupting ongoing business operations.
+
+Once inside Microsoft Fabric, the solution implements a Medallion Architecture (Bronze, Silver, Gold) to progressively refine data quality and usability:
 
 ### Bronze Layer – Raw Ingestion
-The Bronze layer is the raw data storage tier in a data lakehouse architecture. It stores data in its original format (CSV, JSON, Parquet, etc.) as it is ingested from various sources. The purpose of the Bronze layer is to ensure that all raw data is stored securely and in an organized manner, ready for future processing. 
+The Bronze layer stores raw, source-aligned data in Delta tables with minimal transformation. It preserves data lineage and supports schema evolution while enabling scalable distributed processing.The Bronze layer is the raw data storage tier in a data lakehouse architecture. It stores data in its original format (CSV, JSON, Parquet, etc.) as it is ingested from various sources. The purpose of the Bronze layer is to ensure that all raw data is stored securely and in an organized manner, ready for future processing. 
 
-#### Tasks:
-- Automated ingestion using Fabric Pipelines
-- Raw CSV, JSON, and Parquet data stored in Fabric Lakehouse
-- Schema drift handling enabled
-- Partitioned by date and region
+
 
 ### Silver Layer – Data Processing & Standardization
-The Silver layer is where raw data from the Bronze layer is cleaned, standardized, and prepared for analytical processing. I addressed specific data cleaning and transformation requirements, such as validating customer information, categorizing customer segments, and ensuring data quality by removing junk records.
+The Silver layer is responsible for transforming raw Bronze data into clean, standardized, and analytics-ready datasets. At this stage, data is validated, deduplicated, and enriched to ensure quality and consistency across regions. Key transformations include validating customer information, categorizing customer segments, removing junk records, normalizing currencies, aligning time zones, and harmonizing regional product codes. These processes are implemented using Fabric Dataflows Gen2 and Spark-based transformations, while Delta Lake capabilities such as ACID transactions, schema evolution, and time travel ensure data reliability, governance, and optimized performance.
 
-#### Tasks:
-- Data cleaning using Fabric Dataflows Gen2
-- Currency normalization
-- Time zone standardization
-- Regional product code harmonization
-- Delta Lake implementation for:
-- ACID transactions
-- Schema evolution
-- Time travel
 
 ### Gold Layer – Business-Ready Models
-The Gold layer is designed for business-ready data, where key metrics and summaries are derived from the cleansed data stored in the Silver layer. Here, I  aggregated sales data into a daily summary table, which will provide insights into the total sales per day for Binaryville as well as generated sales summaries based on product categories, which will help Binaryville understand how different product categories are performing in terms of total sales.
+The Gold layer delivers business-ready, curated datasets structured for analytics. This layer includes unified customer views, standardized product dimensions, sales fact tables, financial aggregates, and inventory performance models. Data models here are optimized for reporting and enterprise KPIs. 
 
-#### Tasks
-- Unified customer 360 view
-- Standardized product dimension
-- Sales fact tables
-- Inventory performance models
-- Aggregated regional financial models
+Finally, Power BI connects directly to the Gold layer, enabling real-time dashboards and executive reporting across sales, finance, marketing, and operations. This architecture supports near real-time insights while maintaining strong governance, scalability, and performance optimization.
+
+Overall, the solution balances large-scale batch processing with incremental updates, reduces processing time dramatically, and establishes a future-ready data platform capable of supporting acquisitions, global expansion, and advanced analytics initiatives.
+
 
 ### Batch & Incremental Processing
-- Spark notebooks designed for incremental loads
-- Partition-based processing
-- Optimized Delta tables (Z-Ordering, compaction)
-- Reduced runtime from 72 hours → under 6 hours
+To efficiently handle five years of historical data alongside continuous daily updates, the solution implements a robust batch and incremental processing strategy using Spark notebooks within Microsoft Fabric. Historical data loads were processed in distributed batches, while daily incremental loads were designed to capture only newly added or updated records, significantly reducing unnecessary computation. Partition-based processing was applied using region and date to optimize query performance and enable partition pruning. Delta Lake optimizations, including Z-Ordering and table compaction, were implemented to improve read performance and storage efficiency. Together, these strategies reduced total processing time from 72 hours to under 6 hours while maintaining data consistency and reliability at scale.
 
-### Analytics & Reporting
-I created a semantic model for the Gold layer of the data lakehouse which can be used to create Power BI dashboard report to visualizes the business metrics derived from the Gold layer of the data lakehouse. The goal is to present key metrics like daily sales, category sales, and total revenue in a visually compelling and interactive format for business decision-makers.
-
-Power BI connected directly to Fabric Lakehouse for:
-- Real-time financial dashboards
-- Global sales performance tracking
-- Inventory forecasting models
-- Customer personalization insights
-- Executive KPI dashboards
 
 ## Key Achievements
-The solution delivered a 90% reduction in data processing time, significantly accelerating insights across the organization. It improved inventory forecasting accuracy by 25% and enhanced customer personalization efforts, driving a 15% increase in repeat purchases. Additionally, it enabled real-time consolidated financial reporting and established a scalable architecture capable of supporting future acquisitions and growth.
+The implementation delivered measurable enterprise impact by reducing data processing time by 90%, dramatically accelerating the availability of insights across the organization. Enhanced data standardization and modeling improved inventory forecasting accuracy by 25%, enabling better demand planning and stock optimization. Improved customer data consolidation powered personalization strategies that increased repeat purchases by 15%. Additionally, the architecture enabled real-time consolidated financial reporting across all regions and established a scalable, future-ready platform capable of supporting continued global expansion and acquisitions.
 
 
 
