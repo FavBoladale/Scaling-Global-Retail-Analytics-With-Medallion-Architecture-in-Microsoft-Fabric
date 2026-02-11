@@ -1,0 +1,12 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Notebook",
+    "displayName": "Silverlayer_orders_load",
+    "description": "Silverlayer_orders_load"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "ed33afbb-8000-969c-4086-8f860c49005b"
+  }
+}
